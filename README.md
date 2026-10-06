@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hero.svg" alt="Ujwal Shettigar. CSE student, full-stack developer, systems and technology explorer." width="100%">
+  <img src="assets/hero.svg" alt="Terminal: ujwal@github:~$ ./introduce.sh, cycling through CSE Student, Full-Stack Developer, C++ / DSA Learner, Linux Enthusiast, AI and Cybersecurity Explorer, Game Development and Graphics Explorer." width="100%">
 </p>
 
 <p align="center">
@@ -8,22 +8,30 @@
   <a href="mailto:ujwalshettigar@gmail.com"><img src="https://img.shields.io/badge/email-ujwalshettigar%40gmail.com-21262d?style=flat-square&labelColor=161b22" alt="Email: ujwalshettigar@gmail.com"></a>
   <a href="https://instagram.com/_ujwal_shettigar_"><img src="https://img.shields.io/badge/instagram-__ujwal__shettigar__-21262d?style=flat-square&labelColor=161b22" alt="Instagram: _ujwal_shettigar_"></a>
 </p>
+<p align="center">
+  <img src="assets/boot.svg" alt="Boot log: initializing profile, loading projects, loading tech stack, fetching GitHub activity, system ready." width="100%">
+</p>
+
 
 ## ABOUT
 
-<img src="assets/about.svg" alt="Terminal output. whoami: Ujwal Shettigar. about.txt: CSE engineering student, full-stack developer, C++ and DSA learner, Linux enthusiast, AI and cybersecurity explorer, game development and graphics explorer. Currently: building full-stack applications, improving DSA with C++, exploring AI and cybersecurity, learning systems and graphics." width="100%">
+<img src="assets/about.svg" alt="Terminal session. whoami: Ujwal Shettigar. ls ./interests: cpp, linux, fullstack, ai, cybersecurity, graphics. ./current_focus: C++ and DSA, full-stack development, Linux, AI and cybersecurity." width="100%">
 
 ## CURRENTLY BUILDING
 
 **Hyperlocal Grocery Platform.** A Blinkit-inspired grocery delivery system with four roles: Customer, Picker, Delivery Partner and Admin.
 
-<img src="assets/architecture.svg" alt="Request flow: Customer to Frontend (React, Vite) to API (Node and Express) to Supabase database, then out to the Picker, Delivery Partner and Admin roles." width="100%">
+<img src="assets/architecture.svg" alt="Animated request flow: Customer to React and Vite frontend to Node and Express API, which queries Supabase and verifies through Auth. Supabase feeds the Picker, Delivery Partner and Admin dashboards." width="100%">
 
 <img src="https://skillicons.dev/icons?i=react,vite,nodejs,express,supabase&theme=dark" alt="React, Vite, Node.js, Express, Supabase">
 
 ## CURRENTLY LEARNING
 
 <img src="assets/learning.svg" alt="Learning tree. C++: data structures, algorithms. JavaScript: React, Node.js. Linux: shell, systems. AI/ML: applied AI. Cybersecurity: network and application security. Graphics: OpenGL, Vulkan." width="100%">
+
+## ENVIRONMENT
+
+<img src="assets/env.svg" alt="stack --active: C++, React, Node.js, Linux, Supabase and Git, all marked active." width="100%">
 
 ## TECH STACK
 
@@ -63,6 +71,10 @@
 ## CONTRIBUTIONS
 
 <img src="assets/contributions.svg" alt="GitHub contribution calendar for the last year, generated daily from real data." width="100%">
+
+## CODE
+
+<img src="assets/code.svg" alt="main.cpp typed out, compiled with g++ and run. Output: Building something..." width="100%">
 
 ## GOALS
 
