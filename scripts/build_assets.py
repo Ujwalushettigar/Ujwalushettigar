@@ -195,7 +195,7 @@ def line_el(x, y, segs, fs=14):
 
 # =============================== CONTENT ====================================
 NAME = "Ujwal Shettigar"
-SUBTITLE = "Computer Science Engineering student"
+SUBTITLE = "CSE Student · Full-Stack Developer · Systems & Technology Explorer"
 ROLES = [
     "CSE Student",
     "Full-Stack Developer",
@@ -204,12 +204,14 @@ ROLES = [
     "AI & Cybersecurity Explorer",
     "Game Development / Graphics Explorer",
 ]
-BOOT = ["Initializing profile...", "Loading projects...", "Loading tech stack...",
+BOOT = ["Loading identity...", "Loading projects...", "Loading stack...",
         "Fetching GitHub activity..."]
-INTERESTS = ["cpp/", "linux/", "fullstack/", "ai/", "cybersecurity/", "graphics/"]
-FOCUS = ["C++ + DSA", "Full-stack development", "Linux", "AI / Cybersecurity"]
+ABOUT_TXT = ["CSE Engineering Student", "Full-stack developer", "C++ / DSA learner", "Linux enthusiast",
+             "AI / Cybersecurity explorer", "Game development / graphics explorer"]
+FOCUS = ["C++ + DSA", "Full-stack applications", "Linux / systems", "AI / cybersecurity",
+         "graphics programming"]
 ENV = [("C++", "dsa · systems"), ("React", "frontend · ui"), ("Node.js", "api · express"),
-       ("Linux", "shell · tooling"), ("Supabase", "database · backend"), ("Git", "version control")]
+       ("Linux", "shell · tooling"), ("Git", "version control"), ("Supabase", "database · backend")]
 LEARN_LEFT = [
     ("C++", ["Data Structures", "Algorithms"]),
     ("JavaScript", ["React", "Node.js"]),
@@ -287,7 +289,7 @@ def boot():
     fs, lh = 14, 24
     s = Scene("bt", fs=fs, hold=6.0)
     y = 58
-    t = s.prompt_line(24, y, "./boot.sh", 0.3) + 0.5
+    t = s.prompt_line(24, y, "./profile", 0.3) + 0.5
     for msg in BOOT:
         y += lh
         pend = line_el(24, y, [("d", "[ .. ] "), ("", msg)], fs)
@@ -300,7 +302,7 @@ def boot():
     t += 0.7
     y += lh + 6
     s.idle_prompt(24, y, t)
-    return s.render(720, y + 22, "ujwal@github: ~/boot.log")
+    return s.render(720, y + 22, "ujwal@github: ~")
 
 
 # ================================== ABOUT ===================================
@@ -319,11 +321,8 @@ def about():
         return t + 0.3, y + lh // 2
 
     t, y = block("whoami", [[("w bold", NAME)]], t, y)
-    ls = []
-    for i, d in enumerate(INTERESTS):
-        ls += [("b bold", d)] + ([("", "  ")] if i < len(INTERESTS) - 1 else [])
-    t, y = block("ls ./interests", [ls], t, y)
-    t, y = block("./current_focus", [[("", f)] for f in FOCUS], t, y)
+    t, y = block("cat about.txt", [[("", l)] for l in ABOUT_TXT], t, y)
+    t, y = block("current_focus", [[("b", "-> "), ("", f)] for f in FOCUS], t, y)
     s.idle_prompt(24, y, t)
     return s.render(720, y + 22, "ujwal@github: ~")
 
@@ -417,11 +416,8 @@ def learning():
 def architecture():
     w, h = 720, 468
     cx, bw, bh = 360, 150, 44
-    sup_x, auth_x = 250, 470
-    role_x, rw, rh = [110, 250, 390], 124, 40
-    ymain = {"cust": 68, "web": 140, "api": 220}
-    ysb, ytrunk, yrole = 310, 366, 418
-    ybranch = 266
+    role_x, rw, rh = [180, 360, 540], 124, 40
+    ycust, yweb, yapi, ysb, ytrunk, yrole = 68, 140, 220, 310, 366, 418
     marker = (f'<marker id="ah" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="6" markerHeight="6" '
               f'orient="auto"><path d="M0 0L8 4L0 8z" fill="{MUTED}"/></marker>')
     mk = ' marker-end="url(#ah)"'
@@ -430,30 +426,27 @@ def architecture():
     lines = [
         ln(f"M{cx} 86V117", True),
         ln(f"M{cx} 162V197", True),
-        ln(f"M{cx} 242V{ybranch}"),
-        ln(f"M{cx} {ybranch}H{sup_x}V287", True),
-        ln(f"M{cx} {ybranch}H{auth_x}V287", True),
-        ln(f"M{sup_x} 332V{ytrunk}"),
+        ln(f"M{cx} 242V287", True),
+        ln(f"M{cx} 332V{ytrunk}"),
         ln(f"M{role_x[0]} {ytrunk}H{role_x[2]}"),
         *[ln(f"M{rx} {ytrunk}V397", True) for rx in role_x],
     ]
 
     # packets travel behind the boxes, so they emerge from box edges
     D, speed = 10.0, 120.0
+
     def packet(path, length, begin, color):
         a, b = begin / D, (begin + length / speed) / D
         return (f'<g><circle r="5" fill="{color}" opacity=".18"/><circle r="2.8" fill="{color}"/>'
                 f'<animateMotion dur="{D:.0f}s" repeatCount="indefinite" calcMode="linear" path="{path}" '
                 f'keyPoints="0;0;1;1" keyTimes="0;{a:.4f};{b:.4f};1"/></g>')
 
-    trunk = lambda rx: f"M{cx} 68V{ybranch}H{sup_x}V{ytrunk}H{rx}V{yrole}"
     pk = []
     if not STATIC:
-        for rx, begin in zip(role_x, [1.2, 0.0, 2.4]):
-            L = (ybranch - 68) + abs(cx - sup_x) + (ytrunk - ybranch) + abs(sup_x - rx) + (yrole - ytrunk)
-            pk.append(packet(trunk(rx), L, begin, BLUE))
-        pk.append(packet(f"M{cx} 68V{ybranch}H{auth_x}V{ysb}", (ybranch - 68) + abs(auth_x - cx) + (ysb - ybranch), 0.5, BLUE))
-        pk.append(packet(f"M{sup_x} {ysb}V{ybranch}H{cx}V68", (ysb - ybranch) + abs(cx - sup_x) + (ybranch - 68), 6.2, GREEN))
+        for rx, begin in zip(role_x, [1.2, 0.0, 2.4]):      # different timing per flow
+            L = (ytrunk - ycust) + abs(cx - rx) + (yrole - ytrunk)
+            pk.append(packet(f"M{cx} {ycust}V{ytrunk}H{rx}V{yrole}", L, begin, BLUE))
+        pk.append(packet(f"M{cx} {ysb}V{ycust}", ysb - ycust, 6.2, GREEN))   # response to the customer
 
     def box(cxx, cy, bw_, bh_, title, sub=None, fs_t=13):
         x, y = cxx - bw_ / 2, cy - bh_ / 2
@@ -466,28 +459,25 @@ def architecture():
         return out
 
     boxes = []
-    boxes += box(cx, ymain["cust"], bw, 36, "Customer", None, 13)
-    boxes += box(cx, ymain["web"], bw, bh, "React / Vite", "frontend")
-    boxes += box(cx, ymain["api"], bw, bh, "Node / Express", "api server")
-    boxes += box(sup_x, ysb, 150, bh, "Supabase", "database")
-    boxes += box(auth_x, ysb, 150, bh, "Auth", "roles · sessions")
+    boxes += box(cx, ycust, bw, 36, "Customer")
+    boxes += box(cx, yweb, bw, bh, "React / Vite", "frontend")
+    boxes += box(cx, yapi, bw, bh, "Node / Express", "api server")
+    boxes += box(cx, ysb, bw, bh, "Supabase", "database")
     for rx, name in zip(role_x, ["Picker", "Delivery Partner", "Admin"]):
         boxes += box(rx, yrole, rw, rh, name, None, 11.5)
 
     dim = lambda x, y, t: f'<text x="{x}" y="{y}" font-size="10.5" class="d">{escape(t)}</text>'
     labels = [
-        dim(24, ymain["cust"] + 4, "client"), dim(24, ymain["web"] + 4, "web"),
-        dim(24, ymain["api"] + 4, "server"), dim(24, ysb + 4, "data"),
-        dim(48, 392, "role dashboards"),
-        dim(372, 106, "browse / order"), dim(372, 184, "API request"),
-        dim(262, 282, "query"), dim(482, 282, "verify"),
+        dim(24, ycust + 4, "client"), dim(24, yweb + 4, "web"), dim(24, yapi + 4, "server"),
+        dim(24, ysb + 4, "data"), dim(24, ytrunk + 4, "roles"),
+        dim(372, 106, "browse / order"), dim(372, 184, "API request"), dim(372, 270, "query"),
+        dim(372, 354, "role dashboards"),
     ]
-    legend = (f'<circle cx="540" cy="414" r="3" fill="{BLUE}"/>{dim(552, 418, "request")}'
-              f'<circle cx="540" cy="434" r="3" fill="{GREEN}"/>{dim(552, 438, "response")}')
+    legend = (f'<circle cx="560" cy="66" r="3" fill="{BLUE}"/>{dim(572, 70, "request")}'
+              f'<circle cx="560" cy="86" r="3" fill="{GREEN}"/>{dim(572, 90, "response")}')
 
     body = "\n".join(lines + pk + boxes + labels + [legend])
     return window(w, h, "hyperlocal-grocery-platform / request flow", body, marker)
-
 
 
 if __name__ == "__main__":

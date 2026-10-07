@@ -7,7 +7,7 @@
 <path d="M0 28.5H720" stroke="#30363d"/>
 <text x="14" y="18" font-size="12" class="d">ujwal@github: ~</text>
 <text x="360.0" y="90" font-size="36" text-anchor="middle" class="w bold">Ujwal Shettigar</text>
-<text x="360.0" y="116" font-size="13" text-anchor="middle" class="d">Computer Science Engineering student</text>
+<text x="360.0" y="116" font-size="13" text-anchor="middle" class="d">CSE Student · Full-Stack Developer · Systems &amp; Technology Explorer</text>
 <path d="M150 138.5H570" stroke="#30363d"/>
 <text x="150" y="168" font-size="16"><tspan class="b">ujwal@github</tspan><tspan class="d">:</tspan><tspan class="b">~</tspan><tspan class="g">$ </tspan><tspan class="w">./introduce.sh</tspan></text>
 <text x="150" y="196" font-size="16" class="g">&gt;</text>
