@@ -18,9 +18,14 @@ Ujwalushettigar/
 │   ├── learning.svg
 │   ├── env.svg
 │   ├── code.svg
-│   └── fonts/            (Roboto Mono, embedded into the SVGs at build time)
+│   ├── profile-ascii.gif            (animated ASCII portrait)
+│   ├── profile-ascii-static.png     (finished ASCII frame, reduced-motion fallback)
+│   ├── profile-photo-static.png     (the photograph inside the same terminal window)
+│   ├── profile-source.jpg           (your photo; you add this, see below)
+│   └── fonts/            (Roboto Mono: woff2 for the SVGs, ttf for the GIF)
 ├── scripts/
-│   └── build_assets.py   (regenerates the SVGs; optional)
+│   ├── build_assets.py   (regenerates the terminal SVGs; optional)
+│   └── build_ascii_portrait.py   (photo -> ASCII GIF + PNGs)
 └── docs/
     └── SETUP.md
 ```
@@ -44,7 +49,7 @@ If Actions → General → Workflow permissions is set to read-only and the run 
 | :-- | :-- |
 | Snake, light | `https://raw.githubusercontent.com/Ujwalushettigar/Ujwalushettigar/output/github-contribution-grid-snake.svg` |
 | Snake, dark | `https://raw.githubusercontent.com/Ujwalushettigar/Ujwalushettigar/output/github-contribution-grid-snake-dark.svg` |
-| Local assets | `assets/hero.svg`, `assets/boot.svg`, `assets/about.svg`, `assets/architecture.svg`, `assets/learning.svg`, `assets/env.svg`, `assets/code.svg` |
+| Local assets | `assets/profile-ascii.gif`, `assets/profile-ascii-static.png`, `assets/hero.svg`, `assets/boot.svg`, `assets/about.svg`, `assets/architecture.svg`, `assets/learning.svg`, `assets/env.svg`, `assets/code.svg` |
 | Activity graph | `github-readme-activity-graph.vercel.app` |
 | Stats, streak, languages, pins | `github-readme-stats.vercel.app`, `streak-stats.demolab.com` |
 | Tech icons | `skillicons.dev` |
@@ -66,6 +71,7 @@ If the snake does not appear:
 
 | Symptom | Cause and fix |
 | :-- | :-- |
+| Generate step fails with an API or rate-limit error | The workflow passes the default `GITHUB_TOKEN` to snk. Re-run after a few minutes; check that the username in `snake.yml` is spelled exactly `Ujwalushettigar`. |
 | Run fails at the publish step with 403 or "Permission denied" | Workflow permissions. The file already sets `contents: write`; also set Settings → Actions → General → Workflow permissions → Read and write. |
 | No `output` branch | The publish step did not run or failed. Open the run log, fix the earlier error, re-run. The step creates the branch itself. |
 | Branch exists but a file is missing | The generate step failed or the file name changed. Names in `snake.yml` and README must match exactly (including `-dark`). |
@@ -78,10 +84,37 @@ If the snake does not appear:
 ## GitHub limitations
 
 - README Markdown cannot change GitHub's page font. Roboto Mono appears only inside the SVG files, where it is embedded.
-- GitHub strips JavaScript, `<style>` blocks and hover effects from README HTML, so there are none. All motion is SMIL animation inside SVG images, which GitHub displays reliably.
+- GitHub strips JavaScript, `<style>` blocks and hover effects from README HTML, so there are none. All motion is SMIL animation inside SVG images, which GitHub displays reliably. Every SVG's markup is its finished frame and the animation only replays the build-up, so a viewer that ignores animation still sees the complete content.
+- Every graphic is drawn at 560 px wide so text stays readable when GitHub scales it to a phone screen.
 - SVGs load through GitHub's image proxy, so they cannot fetch anything. The activity graph, stats and icons are separate images from external services; if one of those services is down, only that image fails.
 - Images are static pictures to screen readers, so every one has alt text and no information exists only inside an animation.
+- The portrait is a GIF, not an SVG, because a GIF animates anywhere an image can be shown and needs no support for SVG animation. GIFs have 256 colours, so the photo frames are slightly posterised; the ASCII frames are unaffected.
 - Third-party services (vercel.app, demolab.com) can be rate-limited. The snake and all terminal graphics are served from your own repository.
+
+## Profile photo and the ASCII portrait
+
+The GIF in the repo was generated from a neutral "US" placeholder image, because the photo did not reach the build. To use your real photo:
+
+1. Save it as `assets/profile-source.jpg` (a `.jpeg`, `.png` or `.webp` also works). A portrait shot, face lit, at least 800 px tall, works best. The file is only read, never modified.
+2. `pip install pillow numpy` (once).
+3. From the repo root run `python3 scripts/build_ascii_portrait.py`.
+4. Commit `assets/profile-ascii.gif`, `assets/profile-ascii-static.png` and `assets/profile-photo-static.png`.
+
+Preview it locally: open `assets/profile-ascii.gif` in a browser (drag it into a tab), or run `python3 scripts/build_ascii_portrait.py --text` to print the ASCII portrait in your terminal.
+
+How it is made: the photo is cropped to 4:5, averaged into an 88 x 66 grid of character cells, contrast-stretched, and each cell's brightness picks a glyph from ` .:-=+*#%@` (brighter = denser, because the text is light on a dark terminal). The animation then moves every cell through photo, pixel mosaic, scrambled glyphs and finally the real glyph, top to bottom with random jitter; the rewind runs bottom to top. Every frame uses one shared palette so the GIF only stores the cells that change. The loop is about 7 seconds and the file is roughly 1.5 to 2.5 MB.
+
+Tuning (constants at the top of the script):
+
+| If the portrait looks like this | Change |
+| :-- | :-- |
+| Head cut off or off-centre | `FOCUS_Y` (smaller = crop higher up), `FOCUS_X` |
+| Face too dark or too washed out | `GAMMA` (below 1 brightens), `BLACK_POINT` |
+| Background full of characters | raise `BLACK_POINT` |
+| Photo has a bright background, so the person looks like a dark hole | set `INVERT = True` |
+| Too coarse or too fine | `COLS` (more columns = more detail, bigger file) |
+
+The README uses `<picture>`: visitors whose system asks for reduced motion get `profile-ascii-static.png`, everyone else gets the GIF. `profile-photo-static.png` is not referenced; it is the plain-photo version if you want it somewhere else.
 
 ## Rebuilding the terminal graphics
 

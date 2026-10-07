@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Generate hero, boot, about, architecture, env, code and learning SVGs into assets/.
 
+Every animation is SMIL (no JavaScript). The markup is always the FINAL, complete frame; animations
+only replay the build-up on top of it, so a renderer without SMIL support still shows everything.
+
 Edit the CONTENT section, then run:  python3 scripts/build_assets.py
 Standard library only. Roboto Mono (subset, ASCII + a few symbols) is embedded
 as base64 so the SVGs render in Roboto Mono without any external request.
@@ -23,6 +26,7 @@ TEXT, DIM, WHITE = "#c9d1d9", "#8b949e", "#e6edf3"
 BLUE, GREEN, MUTED = "#58a6ff", "#3fb950", "#484f58"
 STACK = "'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
 ADV = 0.6  # Roboto Mono advance width in em
+W = 560    # one design width for every graphic: stays legible when GitHub scales it down on a phone
 
 
 def b64(name):
@@ -80,13 +84,18 @@ def kt(times, T):
     return ";".join(f"{min(max(t / T, 0), 1):.5f}" for t in times)
 
 
-class Scene:
-    """One looping SVG animation. Everything is SMIL (no JS, no CSS animation):
-    elements are revealed at absolute times, text is typed with a stepped clip
-    rectangle, and a single cursor rect hops along the typing positions."""
+def vals(v):
+    return ";".join(str(x) for x in v)
 
-    def __init__(self, uid, fs=14, hold=6.0):
-        self.uid, self.fs, self.hold, self.n = uid, fs, hold, 0
+
+class Scene:
+    """One looping terminal animation. The markup is the finished frame; SMIL replays the build-up:
+    elements fade in at absolute times, typed text is uncovered by a moving background-coloured
+    rectangle, and one cursor rect hops along the typing positions. After the build-up the scene
+    holds the finished frame for `hold` seconds, then replays."""
+
+    def __init__(self, uid, fs=14, hold=14.0):
+        self.uid, self.fs, self.hold = uid, fs, hold
         self.items, self.cur, self.t_end = [], [], 0.0
 
     @property
@@ -97,21 +106,19 @@ class Scene:
         self.t_end = max(self.t_end, t)
 
     def show(self, inner, on, off=None):
+        """Visible from `on` (until `off` if given). Default markup state = end of the timeline."""
         self.mark(on if off is None else off)
 
         def f(T):
             if STATIC:
                 return "", ("" if off is not None else inner)
-            if on <= 0 and off is None:
+            if off is None and on <= 0:
                 return "", inner
-            ts, vs = [0], [1 if on <= 0 else 0]
-            if on > 0:
-                ts.append(on); vs.append(1)
-            if off is not None:
-                ts.append(off); vs.append(0)
-            return "", (f'<g opacity="{vs[0]}">{inner}<animate attributeName="opacity" dur="{T:.2f}s" '
+            ts, vs = ([0, on], [0, 1]) if off is None else ([0, on, off], [0, 1, 0])
+            base = 1 if off is None else 0
+            return "", (f'<g opacity="{base}">{inner}<animate attributeName="opacity" dur="{T:.2f}s" '
                         f'repeatCount="indefinite" calcMode="discrete" keyTimes="{kt(ts, T)}" '
-                        f'values="{";".join(map(str, vs))}"/></g>')
+                        f'values="{vals(vs)}"/></g>')
         self.items.append(f)
 
     def typed(self, x, y, segs, t0, speed, fs=None):
@@ -119,8 +126,6 @@ class Scene:
         cw = fs * ADV
         text = "".join(s for _, s in segs)
         n = len(text)
-        self.n += 1
-        cid = f"{self.uid}{self.n}"
         self.mark(t0 + n * speed)
         self.cur.append((t0, x, y))
         for k in range(1, n + 1):
@@ -129,30 +134,36 @@ class Scene:
         def f(T):
             tsp = "".join(f'<tspan class="{c}">{escape(s)}</tspan>' if c else f"<tspan>{escape(s)}</tspan>"
                           for c, s in segs)
-            base = (f'<text x="{x:.1f}" y="{y}" font-size="{fs}" textLength="{n * cw:.1f}" '
-                    f'lengthAdjust="spacing"')
+            txt = (f'<text x="{x:.1f}" y="{y}" font-size="{fs}" textLength="{n * cw:.1f}" '
+                   f'lengthAdjust="spacing">{tsp}</text>')
             if STATIC:
-                return "", f"{base}>{tsp}</text>"
+                return "", txt
             ts = [0] + [t0 + k * speed for k in range(1, n + 1)]
-            vs = [0] + [round(k * cw, 1) for k in range(1, n + 1)]
-            clip = (f'<clipPath id="{cid}"><rect x="{x:.1f}" y="{y - fs - 2}" width="0" height="{fs + 9}">'
-                    f'<animate attributeName="width" dur="{T:.2f}s" repeatCount="indefinite" '
-                    f'calcMode="discrete" keyTimes="{kt(ts, T)}" values="{";".join(map(str, vs))}"/>'
-                    f'</rect></clipPath>')
-            return clip, f'{base} clip-path="url(#{cid})">{tsp}</text>'
+            xs = [round(x, 1)] + [round(x + k * cw, 1) for k in range(1, n + 1)]
+            ws = [round(n * cw + 6 - k * cw, 1) for k in range(0, n + 1)]
+            common = (f'dur="{T:.2f}s" repeatCount="indefinite" calcMode="discrete" '
+                      f'keyTimes="{kt(ts, T)}"')
+            cover = (f'<rect x="{x + n * cw:.1f}" y="{y - 0.88 * fs:.1f}" width="6" '
+                     f'height="{1.2 * fs:.1f}" fill="{BG}">'
+                     f'<animate attributeName="x" {common} values="{vals(xs)}"/>'
+                     f'<animate attributeName="width" {common} values="{vals(ws)}"/></rect>')
+            return "", txt + cover
         self.items.append(f)
         return t0 + n * speed
 
+    def _prompt_svg(self, x, y):
+        cw = self.fs * ADV
+        return prompt(x, y, "", self.fs, f' textLength="{16 * cw:.1f}" lengthAdjust="spacing"')
+
     def prompt_line(self, x, y, cmd, t0, speed=0.07):
         cw = self.fs * ADV
-        self.show(prompt(x, y, "", self.fs, f' textLength="{16 * cw:.1f}" lengthAdjust="spacing"'), t0)
+        self.show(self._prompt_svg(x, y), t0)
         self.cur.append((t0, x + 16 * cw, y))
         return self.typed(x + 16 * cw, y, [("w", cmd)], t0 + 0.3, speed)
 
     def idle_prompt(self, x, y, t0):
-        cw = self.fs * ADV
-        self.show(prompt(x, y, "", self.fs, f' textLength="{16 * cw:.1f}" lengthAdjust="spacing"'), t0)
-        self.cur.append((t0, x + 16 * cw, y))
+        self.show(self._prompt_svg(x, y), t0)
+        self.cur.append((t0, x + 16 * self.fs * ADV, y))
         self.mark(t0)
 
     def cursor_svg(self, T):
@@ -167,30 +178,28 @@ class Scene:
         if out[0][0] > 0:
             out.insert(0, (0, out[0][1], out[0][2]))
         fs, cw = self.fs, self.fs * ADV
-        ts = kt([e[0] for e in out], T)
-        xs = ";".join(f"{e[1]:.1f}" for e in out)
-        ys = ";".join(f"{e[2] - 0.875 * fs:.1f}" for e in out)
-        common = f'dur="{T:.2f}s" repeatCount="indefinite" calcMode="discrete" keyTimes="{ts}"'
-        return (f'<rect x="{out[0][1]:.1f}" y="{out[0][2] - 0.875 * fs:.1f}" width="{cw:.1f}" '
-                f'height="{1.125 * fs:.1f}" fill="{TEXT}" opacity=".85">'
-                f'<animate attributeName="x" {common} values="{xs}"/>'
-                f'<animate attributeName="y" {common} values="{ys}"/>'
+        xs = [f"{e[1]:.1f}" for e in out]
+        ys = [f"{e[2] - 0.875 * fs:.1f}" for e in out]
+        common = f'dur="{T:.2f}s" repeatCount="indefinite" calcMode="discrete" keyTimes="{kt([e[0] for e in out], T)}"'
+        return (f'<rect x="{xs[-1]}" y="{ys[-1]}" width="{cw:.1f}" height="{1.125 * fs:.1f}" '
+                f'fill="{TEXT}" opacity=".85">'
+                f'<animate attributeName="x" {common} values="{vals(xs)}"/>'
+                f'<animate attributeName="y" {common} values="{vals(ys)}"/>'
                 f'<animate attributeName="opacity" values=".85;0" keyTimes="0;.5" dur="1.1s" '
                 f'calcMode="discrete" repeatCount="indefinite"/></rect>')
 
-    def render(self, w, h, title, extra_defs=""):
+    def render(self, h, title, extra_defs=""):
         T = self.T
         parts = [it(T) for it in self.items]
         defs = "".join(d for d, _ in parts) + extra_defs
         body = "\n".join(b for _, b in parts) + "\n" + self.cursor_svg(T)
-        return window(w, h, title, body, defs)
+        return window(W, h, title, body, defs)
 
 
 def line_el(x, y, segs, fs=14):
     tsp = "".join(f'<tspan class="{c}">{escape(s)}</tspan>' if c else f"<tspan>{escape(s)}</tspan>"
                   for c, s in segs)
     return f'<text x="{x}" y="{y}" font-size="{fs}">{tsp}</text>'
-
 
 
 # =============================== CONTENT ====================================
@@ -204,14 +213,12 @@ ROLES = [
     "AI & Cybersecurity Explorer",
     "Game Development / Graphics Explorer",
 ]
-BOOT = ["Loading identity...", "Loading projects...", "Loading stack...",
-        "Fetching GitHub activity..."]
+BOOT = ["Loading identity...", "Loading projects...", "Loading stack...", "Fetching GitHub activity..."]
 ABOUT_TXT = ["CSE Engineering Student", "Full-stack developer", "C++ / DSA learner", "Linux enthusiast",
              "AI / Cybersecurity explorer", "Game development / graphics explorer"]
 FOCUS = ["C++ + DSA", "Full-stack applications", "Linux / systems", "AI / cybersecurity",
          "graphics programming"]
-ENV = [("C++", "dsa · systems"), ("React", "frontend · ui"), ("Node.js", "api · express"),
-       ("Linux", "shell · tooling"), ("Git", "version control"), ("Supabase", "database · backend")]
+ENV = ["C++", "React", "Node.js", "Linux", "Git", "Supabase"]
 LEARN_LEFT = [
     ("C++", ["Data Structures", "Algorithms"]),
     ("JavaScript", ["React", "Node.js"]),
@@ -219,16 +226,16 @@ LEARN_LEFT = [
 ]
 LEARN_RIGHT = [
     ("AI / ML", ["Applied AI"]),
-    ("Cybersecurity", ["Network & application security"]),
+    ("Cybersecurity", ["Network / app security"]),
     ("Graphics", ["OpenGL", "Vulkan"]),
 ]
 
 
 # ================================= HERO =====================================
 def hero():
-    w, h, fs = 720, 246, 16
+    h, fs, L = 164, 16, 80
     cw = fs * ADV
-    x0, yrole = 150 + 2 * cw, 196
+    x0, yprompt, yrole = L + 2 * cw, 112, 140
     type_s, erase_s, hold, gap = 0.07, 0.025, 1.7, 0.35
 
     t, per = 0.0, []
@@ -241,53 +248,59 @@ def hero():
         per.append(ev)
     total = t
 
-    def anim(attr, events, scale, base=0.0):
-        evs = [(0.0, 0)] + events if events[0][0] > 0 else list(events)
-        evs.append((total, 0))
-        ded, last = [], None
+    def steps(attr, events, scale, base):
+        evs = list(events)
+        if evs[0][0] > 0:
+            evs.insert(0, (0.0, 0))
+        ded = []
         for tm, v in evs:
-            if v != last or tm == total:
-                ded.append((tm, v)); last = v
-        kts = ";".join(f"{tm / total:.5f}" for tm, _ in ded)
-        vs = ";".join(f"{base + v * scale:.1f}" for _, v in ded)
+            if ded and abs(ded[-1][0] - tm) < 1e-9:
+                ded[-1] = (tm, v)
+            else:
+                ded.append((tm, v))
         return (f'<animate attributeName="{attr}" dur="{total:.2f}s" repeatCount="indefinite" '
-                f'calcMode="discrete" keyTimes="{kts}" values="{vs}"/>')
+                f'calcMode="discrete" keyTimes="{kt([a for a, _ in ded], total)}" '
+                f'values="{vals([round(base + v * scale, 1) for _, v in ded])}"/>')
 
-    clips, texts = [], []
+    groups = []
     for i, s in enumerate(ROLES):
-        if STATIC and i:
+        n = len(s)
+        txt = (f'<text x="{x0:.1f}" y="{yrole}" font-size="{fs}" textLength="{n * cw:.1f}" '
+               f'lengthAdjust="spacing">{escape(s)}</text>')
+        if STATIC:
+            if i == 0:
+                groups.append(txt)
             continue
-        clip = "" if STATIC else (
-            f'<clipPath id="c{i}"><rect x="{x0:.1f}" y="{yrole - 18}" width="0" height="26">'
-            f'{anim("width", per[i], cw)}</rect></clipPath>')
-        clips.append(clip)
-        texts.append(
-            f'<text x="{x0:.1f}" y="{yrole}" font-size="{fs}" '
-            f'{"" if STATIC else f"clip-path=url(#c{i}) "}'
-            f'textLength="{len(s) * cw:.1f}" lengthAdjust="spacing">{escape(s)}</text>'.replace(
-                "clip-path=url(#c%d)" % i, 'clip-path="url(#c%d)"' % i))
-    allev = [e for ev in per for e in ev]
+        start, end = per[i][0][0], per[i][-1][0]
+        gts, gvs = ([0, end], [1, 0]) if start == 0 else ([0, start, end], [0, 1, 0])
+        cover = (f'<rect x="{x0 + n * cw:.1f}" y="{yrole - 0.88 * fs:.1f}" width="6" '
+                 f'height="{1.2 * fs:.1f}" fill="{BG}">{steps("x", per[i], cw, x0)}'
+                 f'{steps("width", per[i], -cw, n * cw + 6)}</rect>')
+        groups.append(
+            f'<g opacity="{1 if i == 0 else 0}">{txt}{cover}'
+            f'<animate attributeName="opacity" dur="{total:.2f}s" repeatCount="indefinite" '
+            f'calcMode="discrete" keyTimes="{kt(gts, total)}" values="{vals(gvs)}"/></g>')
+
     cursor = "" if STATIC else (
-        f'<rect x="{x0:.1f}" y="{yrole - 14}" width="{cw:.1f}" height="18" fill="{TEXT}" opacity=".85">'
-        f'{anim("x", allev, cw, x0)}'
+        f'<rect x="{x0 + len(ROLES[0]) * cw:.1f}" y="{yrole - 14}" width="{cw:.1f}" height="18" '
+        f'fill="{TEXT}" opacity=".85">{steps("x", [e for ev in per for e in ev], cw, x0)}'
         f'<animate attributeName="opacity" values=".85;0" keyTimes="0;.5" dur="1.1s" '
         f'calcMode="discrete" repeatCount="indefinite"/></rect>')
 
     body = "\n".join([
-        f'<text x="{w / 2}" y="90" font-size="36" text-anchor="middle" class="w bold">{escape(NAME)}</text>',
-        f'<text x="{w / 2}" y="116" font-size="13" text-anchor="middle" class="d">{escape(SUBTITLE)}</text>',
-        f'<path d="M150 138.5H570" stroke="{LINE}"/>',
-        prompt(150, 168, "./introduce.sh", 16),
-        f'<text x="150" y="{yrole}" font-size="{fs}" class="g">&gt;</text>',
-        *texts, cursor,
+        f'<text x="{W / 2}" y="60" font-size="12" text-anchor="middle" class="d">{escape(SUBTITLE)}</text>',
+        f'<path d="M{L} 80.5H{W - L}" stroke="{LINE}"/>',
+        prompt(L, yprompt, "./introduce.sh", fs),
+        f'<text x="{L}" y="{yrole}" font-size="{fs}" class="g">&gt;</text>',
+        *groups, cursor,
     ])
-    return window(w, h, "ujwal@github: ~", body, "".join(clips))
+    return window(W, h, "ujwal@github: ~", body)
 
 
 # ================================== BOOT ====================================
 def boot():
     fs, lh = 14, 24
-    s = Scene("bt", fs=fs, hold=6.0)
+    s = Scene("bt", fs=fs, hold=18.0)
     y = 58
     t = s.prompt_line(24, y, "./profile", 0.3) + 0.5
     for msg in BOOT:
@@ -302,13 +315,13 @@ def boot():
     t += 0.7
     y += lh + 6
     s.idle_prompt(24, y, t)
-    return s.render(720, y + 22, "ujwal@github: ~")
+    return s.render(y + 20, "ujwal@github: ~")
 
 
 # ================================== ABOUT ===================================
 def about():
     fs, lh = 14, 22
-    s = Scene("ab", fs=fs, hold=7.0)
+    s = Scene("ab", fs=fs, hold=16.0)
     y, t = 58, 0.5
 
     def block(cmd, rows, t, y):
@@ -324,42 +337,36 @@ def about():
     t, y = block("cat about.txt", [[("", l)] for l in ABOUT_TXT], t, y)
     t, y = block("current_focus", [[("b", "-> "), ("", f)] for f in FOCUS], t, y)
     s.idle_prompt(24, y, t)
-    return s.render(720, y + 22, "ujwal@github: ~")
+    return s.render(y + 20, "ujwal@github: ~")
 
 
 # ============================== ENVIRONMENT =================================
 def env():
     fs, lh = 14, 28
-    s = Scene("en", fs=fs, hold=7.0)
-    y = 58
-    t = s.prompt_line(24, y, "stack --active", 0.3) + 0.5
-    y += 10
-    tx0, tw, seg = 436, 260, 30
-    for i, (name, desc) in enumerate(ENV):
-        y += lh
-        d0 = f"{i * 0.45:.2f}"
+    s = Scene("en", fs=fs, hold=14.0)
+    y0 = 58
+    t = s.prompt_line(24, y0, "stack --active", 0.3) + 0.5
+    cols = [24, 292]
+    for i, name in enumerate(ENV):
+        x, y = cols[i // 3], y0 + 12 + lh * (i % 3 + 1)
         inner = (
-            f'<text x="24" y="{y}" font-size="14" class="w bold">{escape(name)}</text>'
-            f'<circle cx="124" cy="{y - 5}" r="4" fill="{GREEN}">'
-            f'<animate attributeName="opacity" values="1;.3;1" dur="2.4s" begin="{d0}s" repeatCount="indefinite"/></circle>'
-            f'<text x="138" y="{y}" font-size="12" class="g">ACTIVE</text>'
-            f'<text x="214" y="{y}" font-size="12" class="d">{escape(desc)}</text>'
-            f'<path d="M{tx0} {y - 5}H{tx0 + tw}" stroke="{LINE}"/>'
-            f'<rect x="{tx0}" y="{y - 6.5}" width="{seg}" height="3" fill="{BLUE}" opacity=".7">'
-            f'<animate attributeName="x" values="{tx0};{tx0 + tw - seg};{tx0}" dur="{5 + i * 0.7:.1f}s" '
-            f'begin="{d0}s" repeatCount="indefinite"/></rect>'
+            f'<text x="{x}" y="{y}" font-size="14" class="w bold">{escape(name)}</text>'
+            f'<circle cx="{x + 118}" cy="{y - 5}" r="4" fill="{GREEN}">'
+            f'<animate attributeName="opacity" values="1;.3;1" dur="2.4s" begin="{i * 0.4:.1f}s" '
+            f'repeatCount="indefinite"/></circle>'
+            f'<text x="{x + 132}" y="{y}" font-size="12" class="g">ACTIVE</text>'
         )
         s.show(inner, t)
-        t += 0.35
-    y += lh + 6
-    s.idle_prompt(24, y, t + 0.3)
-    return s.render(720, y + 22, "ujwal@github: ~")
+        t += 0.3
+    yend = y0 + 12 + lh * 3 + 34
+    s.idle_prompt(24, yend, t + 0.2)
+    return s.render(yend + 20, "ujwal@github: ~")
 
 
 # ================================== CODE ====================================
 def code():
     fs, lh, cx = 14, 22, 60
-    s = Scene("cd", fs=fs, hold=7.0)
+    s = Scene("cd", fs=fs, hold=16.0)
     lines = [
         [("b", "#include"), ("", " "), ("g", "<iostream>")],
         None,
@@ -385,14 +392,13 @@ def code():
     t += 0.6
     y += lh + 6
     s.idle_prompt(24, y, t)
-    body_sep = f'<path d="M0 {ysep}.5H720" stroke="{LINE}"/>'
-    svg = s.render(720, y + 22, "main.cpp")
-    return svg.replace("</svg>", body_sep + "\n</svg>")
+    svg = s.render(y + 20, "main.cpp")
+    return svg.replace("</svg>", f'<path d="M0 {ysep}.5H{W}" stroke="{LINE}"/>\n</svg>')
 
 
 # ================================= LEARNING =================================
 def learning():
-    w, fs, lh = 720, 14, 20
+    fs, lh = 14, 20
     parts = [prompt(24, 58, "tree ~/learning")]
 
     def col(x, groups):
@@ -407,16 +413,15 @@ def learning():
                 y += lh
             y += lh // 2
         return y
-    yl, yr = col(24, LEARN_LEFT), col(372, LEARN_RIGHT)
-    return window(w, max(yl, yr) + 6, "ujwal@github: ~/learning", "\n".join(parts))
-
+    yl, yr = col(24, LEARN_LEFT), col(292, LEARN_RIGHT)
+    return window(W, max(yl, yr) + 2, "ujwal@github: ~/learning", "\n".join(parts))
 
 
 # =============================== ARCHITECTURE ===============================
 def architecture():
-    w, h = 720, 468
-    cx, bw, bh = 360, 150, 44
-    role_x, rw, rh = [180, 360, 540], 124, 40
+    h = 468
+    cx, bw, bh = W // 2, 150, 44
+    role_x, rw, rh = [110, 280, 450], 124, 40
     ycust, yweb, yapi, ysb, ytrunk, yrole = 68, 140, 220, 310, 366, 418
     marker = (f'<marker id="ah" viewBox="0 0 8 8" refX="7.5" refY="4" markerWidth="6" markerHeight="6" '
               f'orient="auto"><path d="M0 0L8 4L0 8z" fill="{MUTED}"/></marker>')
@@ -432,12 +437,13 @@ def architecture():
         *[ln(f"M{rx} {ytrunk}V397", True) for rx in role_x],
     ]
 
-    # packets travel behind the boxes, so they emerge from box edges
+    # packets run behind the boxes, so they emerge from box edges; hidden until SMIL starts
     D, speed = 10.0, 120.0
 
     def packet(path, length, begin, color):
         a, b = begin / D, (begin + length / speed) / D
-        return (f'<g><circle r="5" fill="{color}" opacity=".18"/><circle r="2.8" fill="{color}"/>'
+        return (f'<g opacity="0"><set attributeName="opacity" to="1" begin="0s"/>'
+                f'<circle r="5" fill="{color}" opacity=".18"/><circle r="2.8" fill="{color}"/>'
                 f'<animateMotion dur="{D:.0f}s" repeatCount="indefinite" calcMode="linear" path="{path}" '
                 f'keyPoints="0;0;1;1" keyTimes="0;{a:.4f};{b:.4f};1"/></g>')
 
@@ -470,14 +476,14 @@ def architecture():
     labels = [
         dim(24, ycust + 4, "client"), dim(24, yweb + 4, "web"), dim(24, yapi + 4, "server"),
         dim(24, ysb + 4, "data"), dim(24, ytrunk + 4, "roles"),
-        dim(372, 106, "browse / order"), dim(372, 184, "API request"), dim(372, 270, "query"),
-        dim(372, 354, "role dashboards"),
+        dim(cx + 12, 106, "browse / order"), dim(cx + 12, 184, "API request"), dim(cx + 12, 270, "query"),
+        dim(cx + 12, 354, "role dashboards"),
     ]
-    legend = (f'<circle cx="560" cy="66" r="3" fill="{BLUE}"/>{dim(572, 70, "request")}'
-              f'<circle cx="560" cy="86" r="3" fill="{GREEN}"/>{dim(572, 90, "response")}')
+    legend = (f'<circle cx="438" cy="66" r="3" fill="{BLUE}"/>{dim(450, 70, "request")}'
+              f'<circle cx="438" cy="86" r="3" fill="{GREEN}"/>{dim(450, 90, "response")}')
 
     body = "\n".join(lines + pk + boxes + labels + [legend])
-    return window(w, h, "hyperlocal-grocery-platform / request flow", body, marker)
+    return window(W, h, "hyperlocal-grocery-platform / request flow", body, marker)
 
 
 if __name__ == "__main__":

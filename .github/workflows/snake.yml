@@ -24,8 +24,11 @@ jobs:
     steps:
       - name: Generate snake from the contribution graph
         uses: Platane/snk/svg-only@v3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}   # read by snk; the default token avoids API rate limits
         with:
           github_user_name: Ujwalushettigar
+          github_token: ${{ github.token }}
           outputs: |
             dist/github-contribution-grid-snake.svg
             dist/github-contribution-grid-snake-dark.svg?palette=github-dark
