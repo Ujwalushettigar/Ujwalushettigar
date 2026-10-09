@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-reduced-motion: reduce)" srcset="./assets/profile-ascii-static.png">
-    <img src="./assets/profile-ascii.gif" width="500" alt="Animated ASCII portrait of Ujwal Shettigar: a terminal runs ./render_profile --ascii, the photograph breaks into characters, holds as an ASCII portrait, then turns back into the photo.">
+    <source media="(prefers-reduced-motion: reduce)" srcset="./assets/profile-ascii-1500-static.png">
+    <img src="./assets/profile-ascii-1500-topdown-120frames.gif" width="500" alt="Animated ASCII rendering of my profile photograph, written line by line from top to bottom">
   </picture>
 </p>
 

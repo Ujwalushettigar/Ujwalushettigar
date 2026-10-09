@@ -18,14 +18,12 @@ Ujwalushettigar/
 │   ├── learning.svg
 │   ├── env.svg
 │   ├── code.svg
-│   ├── profile-ascii.gif            (animated ASCII portrait)
-│   ├── profile-ascii-static.png     (finished ASCII frame, reduced-motion fallback)
-│   ├── profile-photo-static.png     (the photograph inside the same terminal window)
-│   ├── profile-source.jpg           (your photo; you add this, see below)
+│   ├── profile-ascii-1500-topdown-120frames.gif   (animation, 1500 x 1500, 120 frames)
+│   ├── profile-ascii-1500-static.png              (finished ASCII portrait, input and fallback)
 │   └── fonts/            (Roboto Mono: woff2 for the SVGs, ttf for the GIF)
 ├── scripts/
 │   ├── build_assets.py   (regenerates the terminal SVGs; optional)
-│   └── build_ascii_portrait.py   (photo -> ASCII GIF + PNGs)
+│   └── generate_ascii_animation.py   (static ASCII portrait -> top-to-bottom GIF)
 └── docs/
     └── SETUP.md
 ```
@@ -49,7 +47,7 @@ If Actions → General → Workflow permissions is set to read-only and the run 
 | :-- | :-- |
 | Snake, light | `https://raw.githubusercontent.com/Ujwalushettigar/Ujwalushettigar/output/github-contribution-grid-snake.svg` |
 | Snake, dark | `https://raw.githubusercontent.com/Ujwalushettigar/Ujwalushettigar/output/github-contribution-grid-snake-dark.svg` |
-| Local assets | `assets/profile-ascii.gif`, `assets/profile-ascii-static.png`, `assets/hero.svg`, `assets/boot.svg`, `assets/about.svg`, `assets/architecture.svg`, `assets/learning.svg`, `assets/env.svg`, `assets/code.svg` |
+| Local assets | `assets/profile-ascii-1500-topdown-120frames.gif`, `assets/profile-ascii-1500-static.png`, `assets/hero.svg`, `assets/boot.svg`, `assets/about.svg`, `assets/architecture.svg`, `assets/learning.svg`, `assets/env.svg`, `assets/code.svg` |
 | Activity graph | `github-readme-activity-graph.vercel.app` |
 | Stats, streak, languages, pins | `github-readme-stats.vercel.app`, `streak-stats.demolab.com` |
 | Tech icons | `skillicons.dev` |
@@ -88,33 +86,39 @@ If the snake does not appear:
 - Every graphic is drawn at 560 px wide so text stays readable when GitHub scales it to a phone screen.
 - SVGs load through GitHub's image proxy, so they cannot fetch anything. The activity graph, stats and icons are separate images from external services; if one of those services is down, only that image fails.
 - Images are static pictures to screen readers, so every one has alt text and no information exists only inside an animation.
-- The portrait is a GIF, not an SVG, because a GIF animates anywhere an image can be shown and needs no support for SVG animation. GIFs have 256 colours, so the photo frames are slightly posterised; the ASCII frames are unaffected.
+- The portrait is a GIF, not an SVG, because a GIF animates anywhere an image can be shown and needs no support for SVG animation. GIFs have 256 colours; the portrait is near-monochrome, and the largest colour change from palette rounding is 4 levels out of 255.
 - Third-party services (vercel.app, demolab.com) can be rate-limited. The snake and all terminal graphics are served from your own repository.
 
-## Profile photo and the ASCII portrait
+## ASCII portrait animation
 
-The GIF in the repo was generated from a neutral "US" placeholder image, because the photo did not reach the build. To use your real photo:
+`assets/profile-ascii-1500-static.png` is the finished 1500 x 1500 ASCII portrait (187 x 187 characters). The GIF writes it one line of characters at a time, top to bottom, like a terminal printing the image.
 
-1. Save it as `assets/profile-source.jpg` (a `.jpeg`, `.png` or `.webp` also works). A portrait shot, face lit, at least 800 px tall, works best. The file is only read, never modified.
-2. `pip install pillow numpy` (once).
-3. From the repo root run `python3 scripts/build_ascii_portrait.py`.
-4. Commit `assets/profile-ascii.gif`, `assets/profile-ascii-static.png` and `assets/profile-photo-static.png`.
+| Frames | What happens | Frame time |
+| :-- | :-- | :-- |
+| 1 to 96 | rows appear from the top row to the bottom row; finished rows stay; a small cursor block sits on the next row | 50 ms |
+| 97 to 110 | the finished portrait is held; the cursor block breathes in and out | 150 ms |
+| 111 to 120 | the screen is cleared top to bottom, so the loop restarts from a blank terminal | 50 ms |
 
-Preview it locally: open `assets/profile-ascii.gif` in a browser (drag it into a tab), or run `python3 scripts/build_ascii_portrait.py --text` to print the ASCII portrait in your terminal.
+Total 120 frames, 7.4 seconds per loop, forever. Every frame differs from the previous one, because GIF writers silently merge identical neighbouring frames.
 
-How it is made: the photo is cropped to 4:5, averaged into an 88 x 66 grid of character cells, contrast-stretched, and each cell's brightness picks a glyph from ` .:-=+*#%@` (brighter = denser, because the text is light on a dark terminal). The animation then moves every cell through photo, pixel mosaic, scrambled glyphs and finally the real glyph, top to bottom with random jitter; the rewind runs bottom to top. Every frame uses one shared palette so the GIF only stores the cells that change. The loop is about 7 seconds and the file is roughly 1.5 to 2.5 MB.
+Regenerate (after changing the PNG, or the timing constants at the top of the script):
 
-Tuning (constants at the top of the script):
+```
+pip install pillow numpy
+python3 scripts/generate_ascii_animation.py
+```
 
-| If the portrait looks like this | Change |
-| :-- | :-- |
-| Head cut off or off-centre | `FOCUS_Y` (smaller = crop higher up), `FOCUS_X` |
-| Face too dark or too washed out | `GAMMA` (below 1 brightens), `BLACK_POINT` |
-| Background full of characters | raise `BLACK_POINT` |
-| Photo has a bright background, so the person looks like a dark hole | set `INVERT = True` |
-| Too coarse or too fine | `COLS` (more columns = more detail, bigger file) |
+The script prints what it verified: 1500 x 1500, exactly 120 frames (counted by Pillow and again by walking the raw GIF blocks), loop forever, every decoded frame identical to the intended frame, and the total duration. It exits with an error if any check fails. Preview locally by dragging the GIF into a browser tab.
 
-The README uses `<picture>`: visitors whose system asks for reduced motion get `profile-ascii-static.png`, everyone else gets the GIF. `profile-photo-static.png` is not referenced; it is the plain-photo version if you want it somewhere else.
+To build a new portrait from a photo (the default mode only animates the existing PNG):
+
+```
+python3 scripts/generate_ascii_animation.py --photo assets/profile-source.jpg --write-static
+```
+
+This converts the photo with a real brightness-to-character mapping (` .:-=+*#%@`, brighter = denser) using Roboto Mono, writes it over the static PNG and animates it. The glyphs will not be pixel-identical to the current PNG, so keep the default mode if you like the current look. The photo is only read, never modified. Tuning constants (`BLACK_POINT`, `GAMMA`, `FOCUS_X`, `FOCUS_Y`) are at the top of the script.
+
+The README uses `<picture>`: visitors whose system asks for reduced motion get the static PNG, everyone else gets the GIF.
 
 ## Rebuilding the terminal graphics
 
