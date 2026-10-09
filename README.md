@@ -1,11 +1,10 @@
 <p align="center">
   <picture>
     <source media="(prefers-reduced-motion: reduce)" srcset="./assets/profile-ascii-1500-static.png">
-    <img src="./assets/profile-ascii-1500-topdown-120frames.gif" width="500" alt="Animated ASCII rendering of my profile photograph, written line by line from top to bottom">
+    <img src="./assets/profile-ascii-1500-topdown-120frames.gif" width="370" alt="Animated ASCII rendering of my profile photograph, written line by line from top to bottom">
   </picture>
+  <img src="./assets/about.svg" width="470" alt="Terminal session. whoami: Ujwal Shettigar. cat about.txt: CSE engineering student, full-stack developer, C++ and DSA learner, Linux enthusiast, AI and cybersecurity explorer, game development and graphics explorer. current_focus: C++ and DSA, full-stack applications, Linux and systems, AI and cybersecurity, graphics programming.">
 </p>
-
-<h1 align="center">Ujwal Shettigar</h1>
 
 <p align="center">
   <img src="assets/hero.svg" alt="Terminal: ujwal@github:~$ ./introduce.sh, cycling through CSE Student, Full-Stack Developer, C++ / DSA Learner, Linux Enthusiast, AI and Cybersecurity Explorer, Game Development and Graphics Explorer." width="100%">
@@ -21,10 +20,6 @@
 <p align="center">
   <img src="assets/boot.svg" alt="Boot log: loading identity, loading projects, loading stack, fetching GitHub activity, system ready." width="100%">
 </p>
-
-## ABOUT
-
-<img src="assets/about.svg" alt="Terminal session. whoami: Ujwal Shettigar. cat about.txt: CSE engineering student, full-stack developer, C++ and DSA learner, Linux enthusiast, AI and cybersecurity explorer, game development and graphics explorer. current_focus: C++ and DSA, full-stack applications, Linux and systems, AI and cybersecurity, graphics programming." width="100%">
 
 ## CURRENTLY BUILDING
 
