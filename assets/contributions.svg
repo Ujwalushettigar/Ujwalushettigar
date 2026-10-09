@@ -386,6 +386,7 @@
 <rect class="c" x="691.47" y="76.53" width="10.13" height="10.13" rx="2" fill="#0e4429" style="animation-delay:728ms"/>
 <rect class="c" x="691.47" y="89.06" width="10.13" height="10.13" rx="2" fill="#26a641" style="animation-delay:728ms"/>
 <rect class="c" x="691.47" y="101.58" width="10.13" height="10.13" rx="2" fill="#0e4429" style="animation-delay:728ms"/>
-<rect class="c t" x="691.47" y="114.11" width="10.13" height="10.13" rx="2" fill="#0e4429" style="animation-delay:728ms"/>
+<rect class="c" x="691.47" y="114.11" width="10.13" height="10.13" rx="2" fill="#0e4429" style="animation-delay:728ms"/>
+<rect class="c t" x="691.47" y="126.64" width="10.13" height="10.13" rx="2" fill="#161b22" style="animation-delay:728ms"/>
 <text x="40" y="173" font-size="12"><tspan class="w bold">380</tspan><tspan class="d"> contributions in the last year</tspan></text><text x="575" y="173" font-size="10.5" class="d" text-anchor="end">Less</text><rect x="583" y="164" width="10" height="10" rx="2" fill="#161b22"/><rect x="596" y="164" width="10" height="10" rx="2" fill="#0e4429"/><rect x="609" y="164" width="10" height="10" rx="2" fill="#006d32"/><rect x="622" y="164" width="10" height="10" rx="2" fill="#26a641"/><rect x="635" y="164" width="10" height="10" rx="2" fill="#39d353"/><text x="652" y="173" font-size="10.5" class="d">More</text>
 </svg>
